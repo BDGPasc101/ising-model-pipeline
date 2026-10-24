@@ -108,3 +108,9 @@ Plotting the grid states using matplotlib
 Outputting the data to a dedicated data folder:
 docker run --rm -v ${PWD}/data:/data ising-model python /app/run_simulation.py
 docker run --rm -v ${PWD}/data:/data -v ${PWD}/visualise_grids.py:/app/visualise_grids.py ising-model python /app/visualise_grids.py
+
+Additional tests
+1. Thermodynamic limit tests - at T=0.1 and T=100
+- Testing no thermal noise vs chaos expectations
+
+2. Writing "Fuzz tests" to ensure safety nets work - cython checks to ensure bad data injected such as wrong types, or mismatched array dimensions, is caught
