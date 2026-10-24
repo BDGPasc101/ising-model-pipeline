@@ -76,3 +76,24 @@ As a Research Software Engineer, you know that a core, high-performance C-extens
 Solution:  Delete the unused import - I asked about linting, the recommendation is to use cython-lint
 
 Successful run - simulation_results.csv made!
+
+Tests
+Created test_model.py in dedicated tests folder
+Added the copy for the test file to the docker file
+Error running tests: "E   ModuleNotFoundError: No module named 'ising_sim'
+-
+ERROR tests/test_model.py"
+Coach: "When you ran run_simulation.py, Python's working directory was the root /app folder, so it saw the compiled ising_sim module sitting right next to it. But when you tell pytest to run inside the tests/ folder, Python changes its search path to /app/tests/, completely missing the compiled module in the directory above it.
+
+As a Research Software Engineer, the best practice is not to mess with folder paths, but to actually install your simulation as a global Python package inside the container."
+
+Fix: Update dockerfile to us pip to install cython into container's library
+# 6. Install the simulation as a system-wide Python package
+RUN pip install .
+
+Debugging failed test - attribute error
+"Because they used cdef instead of a standard Python self.Ns, that variable is locked away in raw C memory. It exists, but Python is completely blind to it. When your Pytest script tries to check assert base_model.Ns == 8, Python throws an AttributeError because it cannot find a standard Python attribute with that name.
+
+As a Research Software Engineer, the best practice is to test the behavior of the C-extension rather than forcing it to expose its internal C-variables, as modifying the Cython declarations risks breaking the math."
+
+Updating test: change test_initialisation to check initialised class but not hidden variables

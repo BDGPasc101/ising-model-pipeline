@@ -18,9 +18,10 @@ RUN pip install --no-cache-dir numpy cython pandas pytest
 COPY setup.py .
 COPY ising/ ./ising/
 COPY run_simulation.py .
+COPY tests/ ./tests/
 
-# 6. Compile the Cython extension
-RUN python setup.py build_ext --inplace
+# 6. Install the simulation as a system-wide Python package
+RUN pip install .
 
 # 7. Default command (drops you into a Python shell or runs a specific script)
 CMD ["python"]
