@@ -114,3 +114,8 @@ Additional tests
 - Testing no thermal noise vs chaos expectations
 
 2. Writing "Fuzz tests" to ensure safety nets work - cython checks to ensure bad data injected such as wrong types, or mismatched array dimensions, is caught
+
+Github Actions CI/CD
+- Configure project so that tests run automatically whenever there is a push to github
+- Github will spin up a ubuntu server and build your docker container, and run the tests
+- Configured to run when branch merges to main or master
