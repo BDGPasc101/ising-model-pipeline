@@ -37,13 +37,19 @@ def checkOpenmpSupport():
 # Determine OpenMP arguments
 ompArgs = ['-fopenmp'] if checkOpenmpSupport() else []
 
+# Add flags to allow legacy/sloppy C code to compile on modern GCC
+legacy_c_flags = [
+    '-Wno-implicit-function-declaration', 
+    '-Wno-incompatible-pointer-types'
+]
+
 ext_modules = [
     Extension(
         "ising",
-        # Updated paths to match your exact directory structure
-        sources=["Ising/Core/ising.pyx", "Ising/Core/cIsing.c", "Ising/Core/mt19937ar.c"], 
-        include_dirs=[numpy.get_include(), "Ising/Core"], 
-        extra_compile_args=ompArgs,
+        sources=["ising/core/ising.pyx", "ising/core/cIsing.c"], 
+        include_dirs=[numpy.get_include(), "ising/core"], 
+        # Combine the OpenMP flags with the legacy C flags
+        extra_compile_args=ompArgs + legacy_c_flags,
         extra_link_args=ompArgs,
     )
 ]
