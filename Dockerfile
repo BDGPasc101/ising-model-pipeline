@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir numpy cython pandas pytest
 # 5. Copy the necessary project files into the container
 COPY setup.py .
 COPY ising/ ./ising/
+COPY run_simulation.py .
 
 # 6. Compile the Cython extension
 RUN python setup.py build_ext --inplace
