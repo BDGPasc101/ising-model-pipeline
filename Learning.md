@@ -1,0 +1,121 @@
+Modernising the setup file:
+
+
+Docker:
+Create a file named Dockerfile in the root of your project (right next to your setup.py).
+
+This Dockerfile acts as the blueprint to create a pristine Linux environment, install the C compiler, pull down the necessary Python libraries, and compile your Cython code natively.
+
+Note - Important to installed recommended "Container Tools" for docker if prompted. Helps to build out dockerfile by denoting spelling errors and syntax issues. Also helps with a UI tool to manager contains and images. Can right click the dockerfile to build the image directly from the side menu.
+
+
+Error encountered when trying to run docker:
+"2.244 ising/core/cIsing.c:67:14: err: implicit declaration of fn ?total_energy? [-Wimplicit-function-declaration]
+2.244    67 |         E0 = total_energy(Spin, Nsites);
+2.244       |              ^~~~~~~~~~~~
+2.244 ising/core/cIsing.c:11:9: note: prev declaration of ?total_energy? with type ?int(int *, int)?
+2.244    11 |     int total_energy(int [],         int );
+2.244       |         ^~~~~~~~~~~~"
+Coach: "This error is a textbook example of why Research Software Engineers are needed. The original scientist wrote sloppy, older C code (calling a function total_energy without properly declaring it according to modern C standards). The modern GCC compiler inside your pristine Docker environment caught the sloppy code and threw a fatal error (-Wimplicit-function-declaration).
+
+As an RSE, your goal is not to rewrite their 10-year-old C code (which risks breaking the math). Your goal is to fix the build system to accommodate it."
+
+Fix: Add compiler flags to setup file to reduce harshness of C checks
+
+Next docker compile error:
+"When the original scientist ran Cython years ago, it translated their .pyx file into a massive C file (ising.c) and they accidentally committed that generated C file to their GitHub repository along with the source code.
+
+Because ising.c is already sitting in your folder, your setup.py script sees it and says, "Oh, it's already translated, I'll just pass this directly to the GCC compiler!" That old ising.c still contains the hardcoded ../../misc paths, completely ignoring the fixes you made to the .pyx file."
+
+Fix:  Remove stale file, change random number generator paths in ising.pyx file
+
+The Linker in C Compilation
+- tbc
+
+Upon successful docker compilation, you can see "ising.cpython-311-x86_64-linux-gnu.so. That .so file is a compiled "Shared Object."" - I can also see an image present in docker desktop itself.
+
+Creating the run simulation python script - Pandas and NumPy
+Naming the arrays
+- If you look at line 37 in the ising.pyx file you pasted, you will see the function signature for running the 2D simulation: "cpdef twoD(self, int [:, :] S, double [:] E, double [:] M, double [:] C, double [:] X, double [:] B):"
+
+"Here is exactly how those Cython definitions translate into the Python/NumPy arrays we created:
+1. The Data Types (Memoryviews)
+Cython uses "typed memoryviews" to talk to C arrays rapidly:
+int [:, :]: This means a 2-dimensional array of integers (dtype=np.int32).
+double [:]: This means a 1-dimensional array of double-precision floats (dtype=np.float64).
+2. The Physics Variables (E, M, C, X, B)
+By looking at the math happening inside the twoD loop, we can map the single letters to standard statistical mechanics terminology:
+E (Energy): On line 63, E1 = E1 + Ene where Ene = calcEnergy().
+M (Magnetization): On line 64, M1 = M1 + Mag where Mag = calcMag().
+C (Specific Heat): On line 69, C[tt] is calculated using the variance in energy (E2 - E1*E1). In statistical physics, the fluctuation in energy defines a system's Specific Heat Capacity.
+X (Susceptibility): On line 70, X[tt] uses the variance in magnetization (M2 - M1*M1). This defines Magnetic Susceptibility (often denoted by the Greek letter $\chi$, hence the X).
+B (Beta): On line 46, beta = B[tt]. In physics, $\beta = 1/T$ (inverse temperature).3. The Grid Size Padding (The S array)
+The spins array (S) was defined as np.zeros((grid_size + 2, grid_size + 2)).
+This requirement comes from lines 52-53 in ising.pyx:
+Code snippet
+S[0, b]   = S[N, b];  S[N+1, b] = S[1, b];  # ensuring BC
+S[a, 0]   = S[a, N];  S[a, N+1] = S[a, 1];
+"BC" stands for Boundary Conditions. The physics model treats the grid like a torus (a donut) so the edges wrap around. To calculate the math without crashing at the edges, the C code requires a "halo" or padding of 1 extra cell on all four sides of the $N \times N$ grid, which is why the array size must be $N+2$."
+
+Running the simulation and retrieving accessible output data:
+"To run the simulation and save the CSV back to your Windows machine, use a Docker Volume Mount (-v)."
+docker run --rm -v ${PWD}:/app ising-model python run_simulation.py
+
+Error: Shadowing trap - C code was compiled inside container so file could not be found when windows files mounting occured
+Python naming collision: Could not find "Ising" class inside the directory
+
+Fix: update name to "ising_sim" for import, save output to dedicated data folder. Ensure script for simulation is added to dockfile
+
+Cleaning up ising.pyx - defunct import for unused function
+Coach: "If you look at the original ising.pyx file around line 9, the scientist wrote import matplotlib.pyplot as plt.
+
+However, if you read through the rest of the math in that file, they never actually use plt anywhere. It is a dead import left over from when they were prototyping.
+
+As a Research Software Engineer, you know that a core, high-performance C-extension should never handle its own plotting. Computation and visualization should always be strictly separated. Adding matplotlib to your Dockerfile would just bloat your container image size by ~100MB for no reason."
+
+Solution:  Delete the unused import - I asked about linting, the recommendation is to use cython-lint
+
+Successful run - simulation_results.csv made!
+
+Tests
+Created test_model.py in dedicated tests folder
+Added the copy for the test file to the docker file
+Error running tests: "E   ModuleNotFoundError: No module named 'ising_sim'
+-
+ERROR tests/test_model.py"
+Coach: "When you ran run_simulation.py, Python's working directory was the root /app folder, so it saw the compiled ising_sim module sitting right next to it. But when you tell pytest to run inside the tests/ folder, Python changes its search path to /app/tests/, completely missing the compiled module in the directory above it.
+
+As a Research Software Engineer, the best practice is not to mess with folder paths, but to actually install your simulation as a global Python package inside the container."
+
+Fix: Update dockerfile to us pip to install cython into container's library
+# 6. Install the simulation as a system-wide Python package
+RUN pip install .
+
+Debugging failed test - attribute error
+"Because they used cdef instead of a standard Python self.Ns, that variable is locked away in raw C memory. It exists, but Python is completely blind to it. When your Pytest script tries to check assert base_model.Ns == 8, Python throws an AttributeError because it cannot find a standard Python attribute with that name.
+
+As a Research Software Engineer, the best practice is to test the behavior of the C-extension rather than forcing it to expose its internal C-variables, as modifying the Cython declarations risks breaking the math."
+
+Updating test: change test_initialisation to check initialised class but not hidden variables
+
+Plotting the grid states using matplotlib
+- Matplotlib will read the data from the csv file and visualise it at different states of chaos.
+"To capture the specific physics at different stages, we will write a dedicated visualization script that runs three separate, targeted micro-simulations."
+- Add matplotlib to dockerfile as dependency
+- Successfully created PNG 
+
+
+Outputting the data to a dedicated data folder:
+docker run --rm -v ${PWD}/data:/data ising-model python /app/run_simulation.py
+docker run --rm -v ${PWD}/data:/data -v ${PWD}/visualise_grids.py:/app/visualise_grids.py ising-model python /app/visualise_grids.py
+
+Additional tests
+1. Thermodynamic limit tests - at T=0.1 and T=100
+- Testing no thermal noise vs chaos expectations
+
+2. Writing "Fuzz tests" to ensure safety nets work - cython checks to ensure bad data injected such as wrong types, or mismatched array dimensions, is caught
+
+Github Actions CI/CD
+- Configure project so that tests run automatically whenever there is a push to github
+- Github will spin up a ubuntu server and build your docker container, and run the tests
+- Configured to run when branch merges to main or master

@@ -1,0 +1,25 @@
+name: Ising Model CI/CD
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Build Docker Image
+      run: |
+        echo "Building the Ising Model Docker container..."
+        docker build -t ising-model .
+
+    - name: Run Pytest Suite
+      run: |
+        echo "Running automated testing suite inside the container..."
+        docker run --rm ising-model pytest tests/ -v -s
