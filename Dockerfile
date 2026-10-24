@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
 # 4. Install Python build dependencies
 # NumPy must be installed before running setup.py because setup.py imports it
 RUN pip install --no-cache-dir numpy cython pandas pytest
+RUN pip install --no-cache-dir numpy cython pandas pytest matplotlib
 
 # 5. Copy the necessary project files into the container
 COPY setup.py .

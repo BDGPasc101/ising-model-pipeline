@@ -97,3 +97,14 @@ Debugging failed test - attribute error
 As a Research Software Engineer, the best practice is to test the behavior of the C-extension rather than forcing it to expose its internal C-variables, as modifying the Cython declarations risks breaking the math."
 
 Updating test: change test_initialisation to check initialised class but not hidden variables
+
+Plotting the grid states using matplotlib
+- Matplotlib will read the data from the csv file and visualise it at different states of chaos.
+"To capture the specific physics at different stages, we will write a dedicated visualization script that runs three separate, targeted micro-simulations."
+- Add matplotlib to dockerfile as dependency
+- Successfully created PNG 
+
+
+Outputting the data to a dedicated data folder:
+docker run --rm -v ${PWD}/data:/data ising-model python /app/run_simulation.py
+docker run --rm -v ${PWD}/data:/data -v ${PWD}/visualise_grids.py:/app/visualise_grids.py ising-model python /app/visualise_grids.py

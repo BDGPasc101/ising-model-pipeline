@@ -1,49 +1,62 @@
-# ising-model-pipeline
-Ising model adapted for learning purposes - based on original work https://github.com/rajeshrinet/compPhy
+# ⚛️ Ising Model Pipeline: Legacy C to Modern Data Pipeline
 
-My goals:
-- Transfer the original model for producing plots for the Ising model, including the main file ising.pyx
-- Clean up files and dependencies
-- Create a dockerfile
-- Create pyTest suite
+A modernized, containerized, and fully tested computational physics pipeline simulating the 2D Ising Model phase transition. 
 
-Suggested steps from Gemini:
-1. Fix the "Dependency Hell" (The Build Pipeline)
-Look at lines 16-18: cdef extern from "../../misc/mt19937ar.c".
-The scientist hardcoded a relative path to a custom random number generator written in C. If anyone downloads this folder without the misc folder exactly two directories up, the compilation will fail.
+Based on original Cython/C work from [rajeshrinet/compPhy](https://github.com/rajeshrinet/compPhy), this repository has been re-architected to demonstrate best practices in Research Software Engineering (RSE).
 
-Your Fix: Create a proper setup.py file to handle the Cython compilation cleanly. Bundle the necessary C dependencies directly into the module's directory so it is self-contained.
+---
 
-2. Containerize the Compilation (Docker)
-Cython requires a C compiler (like GCC), Python headers, and NumPy headers to build successfully. This is notoriously difficult to set up on Windows or macOS natively.
+## 🎯 Portfolio Project Goals
 
-Your Fix: Write a Dockerfile that uses a slim Python base image, installs build-essential (for the C compiler), installs numpy and cython, and automatically compiles this .pyx file into a usable Python library when the container builds. This makes the simulation "1-click" reproducible for anyone.
+This project was built to demonstrate the transition of a complex, academic computational physics model into a robust software engineering pipeline. 
 
-3. Build a Modern Data Pipeline (pandas)
-Look at cpdef twoD. It takes empty arrays (E, M, C, X for Energy, Magnetization, Specific Heat, and Susceptibility) and populates them in memory. It has no mechanism for saving this data.
+**Core Objectives:**
+1. **Solve "Dependency Hell":** Containerize the C/Cython compilation process to guarantee cross-platform reproducibility without manual compiler configuration.
+2. **Modernize the Build System:** Refactor legacy Cython implementations, fix hardcoded relative paths, resolve linker collisions, and package the C-extension using standard `setup.py` and `pip`.
+3. **Build a Data Pipeline:** Decouple computation from visualization. Use the high-performance C-binary for the Monte Carlo simulation, passing the output into a modern Python data stack (`pandas`, `matplotlib`).
+4. **Apply QA Superpowers:** Introduce a robust automated testing suite (`pytest`) to validate memory initialization, data array invariants, and the thermodynamic laws governing the model.
 
-Your Fix: Write a clean Python wrapper script (run_simulation.py).
+---
 
-Import the compiled Cython module.
+## 📊 The Physics: Phase Transitions
 
-Pass in the parameters (grid size, temperatures, steps).
+The Ising Model simulates ferromagnetism using a 2D grid of atomic "spins". The simulation uses Monte Carlo methods to model the competition between magnetic alignment (order) and thermal energy (chaos).
 
-Take the resulting E, M, C, X NumPy arrays and load them into a pandas DataFrame.
+As temperature increases, the model correctly predicts a critical phase transition ($T_c \approx 2.269$) where the material loses its magnetization—melting from a solid magnet into a disordered state.
 
-Save the DataFrame to a modern, compressed format like Parquet or CSV.
+*(Note: Add your `data/grid_states.png` here in GitHub to show the visual transition from Ordered → Critical → Disordered).*
 
-4. Apply Your QA Superpower (Pytest)
-This code has complex array bounds checking (e.g., S[0, b] = S[N, b]) to handle periodic boundary conditions (making the grid act like a torus/donut so the edges wrap around). This is highly prone to "off-by-one" errors.
+---
 
-Your Fix: Write a pytest suite.
+## 🛠️ Architecture & Engineering Highlights
 
-Math Tests: At very high temperatures, Magnetization should average out to 0. At very low temperatures, it should lock at 1 or -1. Write a test that runs a tiny grid and asserts these thermodynamic laws hold true.
+*   **Cython/C Integration:** The computationally heavy Monte Carlo steps and Mersenne Twister random number generation are executed purely in C for maximum performance, exposed to Python via a compiled `.so` extension (`ising_sim`).
+*   **Dockerized Environment:** The entire build and runtime environment is encapsulated in a `Python 3.11-slim` Docker image, complete with GCC and necessary headers.
+*   **Data Extraction:** The Python layer orchestrates the C-extension, extracts multi-dimensional memoryviews into NumPy arrays, and exports structured datasets to `data/simulation_results.csv`.
+*   **Automated Testing:** Pytest validates the C-extension's memory safety, array shapes, and bounds constraints without exposing fragile internal C declarations.
 
-Logic Tests: Write a unit test for calcEnergy passing in a grid of all 1s (all spins pointing up). The energy should equal exactly -2 * N * N.
+---
 
-5. Create the CI/CD Workflow
-Set up a .github/workflows/main.yml file. Configure it so that every time you push code, GitHub Actions builds your Docker container, compiles the Cython C-extensions, and runs your pytest suite.
+## 🚀 Quick Start
 
-If you build this, a hiring manager at a national lab will see someone who knows how to take their complex computational physics (Cython/C++), make it robust (Pytest), make it reproducible (Docker), and integrate it into modern data tools (pandas).
+Reproduce the exact simulation environment instantly using Docker.
 
-Progress log with reasoning:
+**1. Build the compilation environment:**
+```bash
+docker build -t ising-model .
+```
+
+**2. Run the data pipeline (outputs to `/data`):**
+```bash
+docker run --rm -v ${PWD}/data:/data ising-model python /app/run_simulation.py
+```
+
+**3. Generate the grid state visualizations:**
+```bash
+docker run --rm -v ${PWD}/data:/data -v ${PWD}/visualise_grids.py:/app/visualise_grids.py ising-model python /app/visualise_grids.py
+```
+
+**4. Run the QA Test Suite:**
+```bash
+docker run --rm ising-model pytest tests/ -v -s --tb=short
+```
