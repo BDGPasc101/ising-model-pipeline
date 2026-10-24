@@ -40,9 +40,9 @@ ompArgs = ['-fopenmp'] if checkOpenmpSupport() else []
 ext_modules = [
     Extension(
         "ising",
-        # We explicitly add all .c files here so they compile together
-        sources=["core/ising.pyx", "core/cIsing.c", "core/mt19937ar.c"], 
-        include_dirs=[numpy.get_include(), "core"], 
+        # Updated paths to match your exact directory structure
+        sources=["Ising/Core/ising.pyx", "Ising/Core/cIsing.c", "Ising/Core/mt19937ar.c"], 
+        include_dirs=[numpy.get_include(), "Ising/Core"], 
         extra_compile_args=ompArgs,
         extra_link_args=ompArgs,
     )
@@ -51,6 +51,5 @@ ext_modules = [
 setup(
     name="ising-simulation",
     version="1.0.0",
-    # cythonize() replaces the old cmdclass dictionary
     ext_modules=cythonize(ext_modules, compiler_directives={'language_level': "3"}),
 )
