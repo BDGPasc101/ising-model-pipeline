@@ -73,3 +73,6 @@ However, if you read through the rest of the math in that file, they never actua
 
 As a Research Software Engineer, you know that a core, high-performance C-extension should never handle its own plotting. Computation and visualization should always be strictly separated. Adding matplotlib to your Dockerfile would just bloat your container image size by ~100MB for no reason."
 
+Solution:  Delete the unused import - I asked about linting, the recommendation is to use cython-lint
+
+Successful run - simulation_results.csv made!

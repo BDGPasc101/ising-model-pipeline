@@ -6,7 +6,6 @@
 import cython
 import numpy as np
 cimport numpy as np
-import matplotlib.pyplot as plt
 from numpy.random import rand
 from libc.math cimport sqrt, fabs, int, exp
 from cython.parallel import prange
