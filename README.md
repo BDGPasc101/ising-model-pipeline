@@ -1,3 +1,4 @@
+![CI/CD Pipeline](https://github.com/BDGPasc101/ising-model-pipeline/actions/workflows/ci.yml/badge.svg)
 # ⚛️ Ising Model Pipeline: Legacy C to Modern Data Pipeline
 
 A modernized, containerized, and fully tested computational physics pipeline simulating the 2D Ising Model phase transition. 
